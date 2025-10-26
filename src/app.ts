@@ -15,6 +15,10 @@ app.use(cors({
   origin: process.env.CORS_ORIGIN?.split(',') ?? 'http://localhost:5173'
 }));
 
+import healthcheckRouter from '#routes/healthcheck.routes.js';
+
+app.use('/api/v1/healthcheck', healthcheckRouter);
+
 app.get('/test', (_req: Request, res: Response) => {
   res.json({ message: 'Welcome to the Express + TypeScript Server!' });
 });
