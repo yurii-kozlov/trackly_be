@@ -4,6 +4,9 @@
   "description": "a project management application",
   "main": "index.js",
   "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
