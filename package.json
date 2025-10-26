@@ -5,7 +5,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "node index.js"
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "format": "prettier --format .",
+    "format:check": "prettier --check ."
   },
   "keywords": [
     "backend",
@@ -15,6 +18,7 @@
   "author": "yurii kozlov",
   "license": "ISC",
   "devDependencies": {
+    "nodemon": "^3.1.10",
     "prettier": "3.6.2"
   }
 }
