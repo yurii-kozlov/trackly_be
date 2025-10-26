@@ -5,3 +5,4 @@ package*.json
 .prettierrc
 public
 tsconfig.json
+eslint.config.js
