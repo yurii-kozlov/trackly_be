@@ -1,11 +1,16 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 import mongoose, { Document, Model, Schema } from 'mongoose';
 
 export interface IUserDocument extends Document, IUser {
+  generateAccessToken(): string;
+  generateRefreshToken(): string;
+  generateTemporaryToken(): TemporaryToken;
   isPasswordCorrect(password: string): Promise<boolean>;
 }
 
-export type UserModel = Model<IUserDocument>
+export type UserModel = Model<IUserDocument>;;
 
 interface IUser {
   avatar: {
@@ -22,6 +27,12 @@ interface IUser {
   password: string;
   refreshToken?: string;
   username: string;
+}
+
+interface TemporaryToken {
+  hashedToken: string;
+  tokenExpiry: number;
+  unhashedToken: string;
 }
 
 const userSchema = new Schema<IUserDocument, UserModel>(
@@ -81,12 +92,64 @@ userSchema.pre<IUserDocument>('save', async function (next) {
   next();
 });
 
-
 userSchema.methods.isPasswordCorrect = async function (
   this: IUserDocument,
   password: string,
 ): Promise<boolean> {
   return bcrypt.compare(password, this.password);
 };
+
+userSchema.methods.generateAccessToken = function (this: IUserDocument) {
+  const secret = process.env.ACCESS_TOKEN_SECRET;
+  const expiry = process.env.ACCESS_TOKEN_EXPIRY;
+
+  if (!secret) {
+    throw new Error('ACCESS_TOKEN_SECRET is not set');
+  }
+
+  const payload = {
+    _id: String(this._id),
+    email: this.email,
+    username: this.username,
+  };
+
+  const secretTyped: Secret = secret as Secret;
+  const expiryTyped: SignOptions['expiresIn'] = expiry as SignOptions['expiresIn'];
+
+  const options: SignOptions = { expiresIn: expiryTyped ?? '15m' };
+
+  return jwt.sign(payload, secretTyped, options);
+};
+
+userSchema.methods.generateRefreshToken = function (this: IUserDocument) {
+  const secret = process.env.REFRESH_TOKEN_SECRET;
+  const expiry = process.env.REFRESH_TOKEN_EXPIRY;
+
+  if (!secret) {
+    throw new Error('REFRESH_TOKEN_SECRET is not set');
+  }
+
+  const payload = { _id: String(this._id) };
+
+  const secretTyped: Secret = secret as Secret;
+  const expiryTyped: SignOptions['expiresIn'] = expiry as SignOptions['expiresIn'];
+
+  const options: SignOptions = { expiresIn: expiryTyped ?? '30d' };
+
+  return jwt.sign(payload, secretTyped, options);
+};
+
+userSchema.methods.generateTemporaryToken = function (this: IUserDocument) {
+  const unhashedToken = crypto.randomBytes(20).toString('hex');
+
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(unhashedToken)
+    .digest('hex');
+  
+  const tokenExpiry = Date.now() + (20 * 60 * 1000); // 20 mins
+
+  return { hashedToken, tokenExpiry, unhashedToken};
+}
 
 export const User = mongoose.model<IUserDocument, UserModel>('User', userSchema);
