@@ -20,4 +20,10 @@ export default tseslint.config(
     },
   },
   perfectionist.configs["recommended-natural"],
+  {
+    rules: {
+      "@typescript-eslint/no-confusing-void-expression": "off",
+      "@typescript-eslint/non-nullable-type-assertion-style": "off"
+    },
+  },
 );
