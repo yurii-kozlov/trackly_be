@@ -1,7 +1,30 @@
 import bcrypt from 'bcrypt';
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Document, Model, Schema } from 'mongoose';
 
-const userSchema = new Schema(
+export interface IUserDocument extends Document, IUser {
+  isPasswordCorrect(password: string): Promise<boolean>;
+}
+
+export type UserModel = Model<IUserDocument>
+
+interface IUser {
+  avatar: {
+    localPath: string;
+    url: string;
+  };
+  email: string;
+  emailVerificationExpiry?: Date;
+  emailVerificationToken?: string;
+  forgotPasswordExpiry?: Date;
+  forgotPasswordToken?: string;
+  fullname: string;
+  isEmailVerified: boolean;
+  password: string;
+  refreshToken?: string;
+  username: string;
+}
+
+const userSchema = new Schema<IUserDocument, UserModel>(
   {
     avatar: {
       default: {
@@ -20,18 +43,10 @@ const userSchema = new Schema(
       type: String,
       unique: true,
     },
-    emailVerificationExpiry: {
-      type: Date,
-    },
-    emailVerificationToken: {
-      type: String,
-    },
-    forgotPasswordExpiry: {
-      type: Date,
-    },
-    forgotPasswordToken: {
-      type: String,
-    },
+    emailVerificationExpiry: Date,
+    emailVerificationToken: String,
+    forgotPasswordExpiry: Date,
+    forgotPasswordToken: String,
     fullname: {
       required: true,
       type: String,
@@ -41,12 +56,10 @@ const userSchema = new Schema(
       type: Boolean,
     },
     password: {
-      password: [true, 'The password is required'],
+      required: [true, 'The password is required'],
       type: String,
     },
-    refreshToken: {
-      type: String,
-    },
+    refreshToken: String,
     username: {
       index: true,
       lowercase: true,
@@ -59,16 +72,21 @@ const userSchema = new Schema(
   { timestamps: true },
 );
 
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
+userSchema.pre<IUserDocument>('save', async function (next) {
+  if (!this.isModified('password')) return next();
 
-  const plainPassword = this.password as string;
-
+  const plainPassword = this.password;
   this.password = await bcrypt.hash(plainPassword, 10);
 
   next();
 });
 
-export const User = mongoose.model('User', userSchema);
+
+userSchema.methods.isPasswordCorrect = async function (
+  this: IUserDocument,
+  password: string,
+): Promise<boolean> {
+  return bcrypt.compare(password, this.password);
+};
+
+export const User = mongoose.model<IUserDocument, UserModel>('User', userSchema);

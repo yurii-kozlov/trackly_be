@@ -23,7 +23,7 @@ export default tseslint.config(
   {
     rules: {
       "@typescript-eslint/no-confusing-void-expression": "off",
-      "@typescript-eslint/non-nullable-type-assertion-style": "off"
+      "@typescript-eslint/non-nullable-type-assertion-style": "off",
     },
   },
 );
