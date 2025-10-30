@@ -28,6 +28,6 @@ interface IUser {
 
 interface TemporaryToken {
   hashedToken: string;
-  tokenExpiry: number;
+  tokenExpiry: Date;
   unhashedToken: string;
 }

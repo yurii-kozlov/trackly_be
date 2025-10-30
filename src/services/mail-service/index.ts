@@ -27,11 +27,13 @@ class MailService {
   }
 
   private buildSmtpOptions(): SMTPTransport.Options {
-    if (this.smtpOptions) return this.smtpOptions;
+    if (this.smtpOptions) {
+      return this.smtpOptions
+    };
 
     const host = process.env.MAILTRAP_SMTP_HOST;
     const user = process.env.MAILTRAP_SMTP_USER;
-    const pass = process.env.MAILTRAP_SMTP_PASS;
+    const pass = process.env.MAILTRAP_SMTP_PASSWORD;
     const portStr = process.env.MAILTRAP_SMTP_PORT;
 
     if (!host || !user || !pass || !portStr) {
