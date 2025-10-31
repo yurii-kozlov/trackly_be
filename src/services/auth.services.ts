@@ -1,22 +1,11 @@
+import type { RegisterUserArgs, UserLoginPayload } from "#controllers/auth/types.js";
+
 import { User } from "#models/user/user.models.js";
 import { sendEmail } from "#services/mail-service/index.js";
 import { ApiError } from "#utils/error-response.js";
 import { emailVerificationMailgenContent } from "#utils/mail.js";
 
 import { generateTokens } from "./token.services.js";
-
-export interface UserRegistrationPayload {
-  email: string;
-  fullname: string;
-  password: string;
-  role?: string;
-  username: string;
-}
-
-interface RegisterUserArgs extends UserRegistrationPayload {
-  host: string
-  protocol: string;
-}
 
 class AuthService {
   public async registerUser({ email, fullname, host, password, protocol, username }: RegisterUserArgs) {
@@ -68,6 +57,32 @@ class AuthService {
     };
 
     return createdUser;
+  }
+
+  public async login({ email, password }: UserLoginPayload) {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new ApiError(400, 'The user doesn\'t exist');
+    };
+
+    const isPasswordCorrect= await user.isPasswordCorrect(password);
+
+    if (!isPasswordCorrect) {
+      throw new ApiError(400, 'Invalid credentials');
+    }
+
+    const { accessToken, refreshToken } = await generateTokens(user._id as string);
+
+    const loggedInUser = await User.findById(user._id).select(
+      '-password -refreshToken -emailVerificationToken -emailVerificationExpiry'
+    );
+
+    return {
+      accessToken,
+      loggedInUser,
+      refreshToken
+    }
   }
 };
 

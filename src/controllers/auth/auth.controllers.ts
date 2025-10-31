@@ -1,12 +1,16 @@
 import { authService } from '#services/auth.services.js';
-import { type UserRegistrationPayload as RegisterUserBody } from '#services/auth.services.js';
 import { ApiResponse } from '#utils/api-response.js';
 import { asyncHandler } from '#utils/async-handler.js';
 import { ApiError } from '#utils/error-response.js';
-import { type Request, type Response } from 'express';
+import { type CookieOptions, type Request, type Response } from 'express';
+
+import type { 
+  UserLoginPayload as LoginUserBody, 
+  RegisterUserArgs as RegisterUserBody 
+} from './types.js';
 
 class AuthController {
-  registerUser = asyncHandler(
+  public registerUser = asyncHandler(
     async (req: Request<unknown, unknown, RegisterUserBody>, res: Response) => {
       const { email, fullname, password, role, username } = req.body;
       const protocol = req.protocol;
@@ -35,6 +39,37 @@ class AuthController {
       );
     }
   );
+
+  public login = asyncHandler(
+    async (req: Request<unknown, unknown, LoginUserBody>, res: Response) => {
+      const { email, password, username } = req.body;
+
+      if (!email) {
+        throw new ApiError(400, 'Email is required');
+      }
+
+      const { accessToken, loggedInUser, refreshToken } = await authService.login({ email, password, username});
+
+      const options: CookieOptions = {
+        httpOnly: true,
+        secure: true
+      }
+
+      return res 
+        .status(200)
+        .cookie('accessToken', accessToken, options)
+        .cookie('refreshToken', refreshToken, options)
+        .json(
+          new ApiResponse(
+            200,
+            {
+              accessToken,
+              user: loggedInUser
+            },
+            'The user has been logged in successfully'
+          )
+        )
+    })
 }
 
 const authController = new AuthController();
