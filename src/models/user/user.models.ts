@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 import mongoose, { Schema } from 'mongoose';
 
-import type { IUserDocument, UserModel } from './types.js';
+import type { AccessTokenPayload, IUserDocument, UserModel } from './types.js';
 
 const userSchema = new Schema<IUserDocument, UserModel>(
   {
@@ -77,7 +77,7 @@ userSchema.methods.generateAccessToken = function (this: IUserDocument) {
     throw new Error('ACCESS_TOKEN_SECRET is not set');
   }
 
-  const payload = {
+  const payload: AccessTokenPayload = {
     _id: String(this._id),
     email: this.email,
     username: this.username,

@@ -1,5 +1,7 @@
 import type { IUser } from '#models/user/types.js';
+import type { Request } from 'express';
 
+export type AuthRequest = Request & { user?: null | RequestUserData };
 export interface BaseUserPayload {
   email: string;
   password: string;
@@ -19,3 +21,8 @@ export type UserRegistrationPayload = Pick<
 > & {
   role?: string;
 };
+
+type RequestUserData = Omit<
+  IUser,
+  'emailVerificationExpiry' | 'emailVerificationToken' | 'password' | 'refreshToken'
+>;

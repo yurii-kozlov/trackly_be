@@ -1,5 +1,9 @@
 import { Document, Model } from 'mongoose';
 
+export type AccessTokenPayload = Pick<IUserDocument, 'email' | 'username'> & {
+  _id: string
+}
+
 export interface IUser {
   avatar: {
     localPath: string;
@@ -15,14 +19,14 @@ export interface IUser {
   password: string;
   refreshToken?: string;
   username: string;
-}
+};
 
 export interface IUserDocument extends Document, IUser {
   generateAccessToken(): string;
   generateRefreshToken(): string;
   generateTemporaryToken(): TemporaryToken;
   isPasswordCorrect(password: string): Promise<boolean>;
-};
+}
 
 export type UserModel = Model<IUserDocument>;
 
