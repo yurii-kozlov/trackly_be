@@ -20,8 +20,5 @@ class TokenService {
 }
 
 const tokenService = new TokenService();
-const generateTokens = (userId: string) => tokenService.generateTokens(userId);
 
-export {
-  generateTokens
-}
+export { tokenService };

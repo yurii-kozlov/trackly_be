@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt, { type Secret, type SignOptions } from 'jsonwebtoken';
 import mongoose, { Schema } from 'mongoose';
 
-import type { AccessTokenPayload, IUserDocument, UserModel } from './types.js';
+import type { AccessTokenPayload, IUserDocument, RefreshTokenPayload, UserModel } from './types.js';
 
 const userSchema = new Schema<IUserDocument, UserModel>(
   {
@@ -99,7 +99,7 @@ userSchema.methods.generateRefreshToken = function (this: IUserDocument) {
     throw new Error('REFRESH_TOKEN_SECRET is not set');
   }
 
-  const payload = { _id: String(this._id) };
+  const payload: RefreshTokenPayload = { _id: String(this._id) };
 
   const secretTyped: Secret = secret as Secret;
   const expiryTyped: SignOptions['expiresIn'] = expiry as SignOptions['expiresIn'];

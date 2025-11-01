@@ -3,17 +3,30 @@ import type { Request } from 'express';
 
 import { Document } from 'mongoose';
 
-export type AuthRequest = Request & { user?: null | RequestUserData };
+export type AuthRequest<P = Record<string, string>> = Request<P> & { user?: null | RequestUserData };
+
 export interface BaseUserPayload {
   email: string;
   password: string;
   username: string;
 }
 
+export interface CookieRequest extends Request {
+  cookies: {
+    refreshToken?: string;
+  };
+}
+
 export interface RegisterUserArgs extends UserRegistrationPayload {
   host: string;
   protocol: string;
 }
+
+export type RequestUserData = Omit<
+  IUser,
+  'emailVerificationExpiry' | 'emailVerificationToken' | 'password' | 'refreshToken'
+> &
+  Pick<Document, '_id'>;
 
 export type UserLoginPayload = Pick<IUser, 'email' | 'password' | 'username'>;
 
@@ -24,8 +37,6 @@ export type UserRegistrationPayload = Pick<
   role?: string;
 };
 
-type RequestUserData = Omit<
-  IUser,
-  'emailVerificationExpiry' | 'emailVerificationToken' | 'password' | 'refreshToken'
-> &
-  Pick<Document, '_id'>;
+export interface VerifyEmailParams {
+  verificationToken?: string 
+}
