@@ -5,6 +5,7 @@ import { ApiError } from '#utils/error-response.js';
 import { type CookieOptions, type Request, type Response } from 'express';
 
 import type { 
+  AuthRequest,
   UserLoginPayload as LoginUserBody, 
   RegisterUserArgs as RegisterUserBody 
 } from './types.js';
@@ -27,17 +28,19 @@ class AuthController {
         password,
         protocol,
         role,
-        username
+        username,
       });
 
-      return res.status(201).json(
-        new ApiResponse(
-          201,
-          { user: createdUser },
-          'The user has been successfully registered and the verification email has been sent to your email'
-        )
-      );
-    }
+      return res
+        .status(201)
+        .json(
+          new ApiResponse(
+            201,
+            { user: createdUser },
+            'The user has been successfully registered and the verification email has been sent to your email',
+          ),
+        );
+    },
   );
 
   public login = asyncHandler(
@@ -48,14 +51,18 @@ class AuthController {
         throw new ApiError(400, 'Email is required');
       }
 
-      const { accessToken, loggedInUser, refreshToken } = await authService.login({ email, password, username});
+      const { accessToken, loggedInUser, refreshToken } = await authService.login({
+        email,
+        password,
+        username,
+      });
 
       const options: CookieOptions = {
         httpOnly: true,
-        secure: true
-      }
+        secure: true,
+      };
 
-      return res 
+      return res
         .status(200)
         .cookie('accessToken', accessToken, options)
         .cookie('refreshToken', refreshToken, options)
@@ -64,12 +71,28 @@ class AuthController {
             200,
             {
               accessToken,
-              user: loggedInUser
+              user: loggedInUser,
             },
-            'The user has been logged in successfully'
-          )
-        )
-    })
+            'The user has been logged in successfully',
+          ),
+        );
+    },
+  );
+
+  public logoutUser = asyncHandler(async (req: AuthRequest, res: Response) => {
+    await authService.logoutUser(req.user?._id as string);
+
+    const options: CookieOptions = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(200)
+      .clearCookie('accessToken', options)
+      .clearCookie('refreshToken', options)
+      .json(new ApiResponse(200, {}, 'The user has been logged out'));
+  });
 }
 
 const authController = new AuthController();

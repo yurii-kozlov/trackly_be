@@ -8,7 +8,7 @@ import { ApiError } from '#utils/error-response.js';
 import jwt from 'jsonwebtoken';
 
 export const verifyJWT = asyncHandler(
-  async (req: AuthRequest, res: Response, next: NextFunction) => {
+  async (req: AuthRequest, _res: Response, next: NextFunction) => {
     const token = req.header('Authorization')?.replace('Bearer ', '');
 
     if (!token) {

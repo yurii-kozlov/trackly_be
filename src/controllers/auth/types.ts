@@ -1,6 +1,8 @@
 import type { IUser } from '#models/user/types.js';
 import type { Request } from 'express';
 
+import { Document } from 'mongoose';
+
 export type AuthRequest = Request & { user?: null | RequestUserData };
 export interface BaseUserPayload {
   email: string;
@@ -25,4 +27,5 @@ export type UserRegistrationPayload = Pick<
 type RequestUserData = Omit<
   IUser,
   'emailVerificationExpiry' | 'emailVerificationToken' | 'password' | 'refreshToken'
->;
+> &
+  Pick<Document, '_id'>;
