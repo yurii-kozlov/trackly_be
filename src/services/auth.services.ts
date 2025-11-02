@@ -4,7 +4,7 @@ import type { IUserDocument, RefreshTokenPayload } from "#models/user/types.js";
 import { User } from "#models/user/user.models.js";
 import { sendEmail } from "#services/mail-service/index.js";
 import { ApiError } from "#utils/error-response.js";
-import { emailVerificationMailgenContent } from "#utils/mail.js";
+import { emailVerificationMailgenContent, forgotPasswordMailgenContent } from "#utils/mail.js";
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
@@ -41,7 +41,7 @@ class AuthService {
 
     await user.save({ validateBeforeSave: false });
 
-    await this.sendEmail(user, protocol, host);
+    await this.sendEmailVerification(user, protocol, host);
 
     const createdUser = await User.findById(user._id).select(
       '-password -refreshToken -emailVerificationToken -emailVerificationExpiry',
@@ -124,10 +124,10 @@ class AuthService {
       throw new ApiError(409, 'Email has already been verified');
     }
 
-    await this.sendEmail(user, protocol, host);
+    await this.sendEmailVerification(user, protocol, host);
   }
 
-  private async sendEmail(user: IUserDocument, protocol: string, host: string) {
+  private async sendEmailVerification(user: IUserDocument, protocol: string, host: string) {
     const { hashedToken, tokenExpiry, unhashedToken } = user.generateTemporaryToken();
 
     user.emailVerificationToken = hashedToken;
@@ -145,7 +145,7 @@ class AuthService {
     });
   }
 
-  async refreshAccessToken(incomingRefreshToken: string) {
+  public async refreshAccessToken(incomingRefreshToken: string) {
     const decodedToken = jwt.verify(
       incomingRefreshToken,
       process.env.REFRESH_TOKEN_SECRET as string,
@@ -172,6 +172,68 @@ class AuthService {
       newAccessToken,
       newRefreshToken,
     };
+  }
+
+  public async initiatePasswordReset(email: string) {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new ApiError(404, "The user doesn't exist");
+    }
+
+    const { hashedToken, tokenExpiry, unhashedToken } = user.generateTemporaryToken();
+
+    user.forgotPasswordToken = hashedToken;
+    user.forgotPasswordExpiry = tokenExpiry;
+
+    await user.save({ validateBeforeSave: false });
+
+    await sendEmail({
+      email: user.email,
+      mailgenContent: forgotPasswordMailgenContent(
+        user.username,
+        `${process.env.FORGOT_PASSWORD_REDIRECT_URL as string}/${unhashedToken}`,
+      ),
+      subject: 'Password reset request',
+    });
+  }
+
+  public async resetForgotPassword(resetToken: string, newPassword: string) {
+    const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+    const user = await User.findOne({
+      forgotPasswordExpiry: { $gt: Date.now() },
+      forgotPasswordToken: hashedToken,
+    });
+
+    if (!user) {
+      throw new ApiError(489, 'The token is invalid or has expired');
+    }
+
+    user.forgotPasswordExpiry = undefined;
+    user.forgotPasswordToken = undefined;
+
+    // no need to hash as there is an interceptor in the model that does it
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+  }
+
+  public async changeCurrentPassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new ApiError(401, 'Unauthorized request');
+    }
+
+    const isPasswordValid = await user?.isPasswordCorrect(oldPassword);
+
+    if (!isPasswordValid) {
+      throw new ApiError(400, 'Invalid old password');
+    }
+
+    user.password = newPassword;
+
+    await user.save({ validateBeforeSave: false });
   }
 };
 

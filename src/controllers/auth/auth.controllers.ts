@@ -6,7 +6,11 @@ import { type CookieOptions, type Request, type Response } from 'express';
 
 import type { 
   AuthRequest,
+  ChangeCurrentPasswordBody,
   CookieRequest,
+  ForgotPasswordBody,
+  ForgotPasswordResetBody,
+  ForgotPasswordResetParams,
   UserLoginPayload as LoginUserBody, 
   RegisterUserArgs as RegisterUserBody, 
   RequestUserData,
@@ -46,7 +50,7 @@ class AuthController {
     },
   );
 
-  public login = asyncHandler(
+  public loginUser = asyncHandler(
     async (req: Request<unknown, unknown, LoginUserBody>, res: Response) => {
       const { email, password, username } = req.body;
 
@@ -175,6 +179,50 @@ class AuthController {
       throw new ApiError(401, 'Invalid Refresh token', [error]);
     }
   });
+
+  public initiatePasswordReset = asyncHandler(
+    async (req: Request<unknown, unknown, ForgotPasswordBody>, res: Response) => {
+      const { email } = req.body;
+
+      await authService.initiatePasswordReset(email);
+
+      return res
+        .status(200)
+        .json(new ApiResponse(200, {}, 'Password reset mail has been sent to your mail id'));
+    },
+  );
+
+  public resetForgotPassword = asyncHandler(
+    async (
+      req: Request<ForgotPasswordResetParams, unknown, ForgotPasswordResetBody>,
+      res: Response,
+    ) => {
+      const { resetToken } = req.params;
+      const { newPassword } = req.body;
+
+      if (!resetToken || !newPassword) {
+        throw new ApiError(401, 'The reset token or new password are missing');
+      }
+
+      await authService.resetForgotPassword(resetToken, newPassword);
+
+      return res
+        .status(200)
+        .json(new ApiResponse(200, {}, 'The password has been successfully reset'));
+    },
+  );
+
+  public changeCurrentPassword = asyncHandler(
+    async (req: AuthRequest<unknown, unknown, ChangeCurrentPasswordBody>, res: Response) => {
+      const { newPassword, oldPassword } = req.body;
+
+      await authService.changeCurrentPassword(req?.user?._id as string, oldPassword, newPassword);
+
+      return res
+        .status(200)
+        .json(new ApiResponse(200, {}, 'The password has been successfully changed'));
+    },
+  );
 }
 
 const authController = new AuthController();

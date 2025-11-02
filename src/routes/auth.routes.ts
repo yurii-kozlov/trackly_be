@@ -7,7 +7,7 @@ import { Router } from 'express';
 const router = Router();
 
 router.route('/register').post(userRegisterValidator(), validate, authController.registerUser);
-router.route('/login').post(userLoginValidator(), validate, authController.login);
+router.route('/login').post(userLoginValidator(), validate, authController.loginUser);
 router.route('/logout').post(verifyJWT, authController.logoutUser);
 
 export default router;
